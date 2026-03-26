@@ -67,7 +67,19 @@ class GitHubService {
     }
     async addLabel(issueNumber, label) {
         await (0, retry_1.withRetry)(async () => {
-            await (0, exec_1.execCommand)(`gh issue edit ${issueNumber} --repo ${this.repoSlug} --add-label "${label}"`);
+            try {
+                await (0, exec_1.execCommand)(`gh issue edit ${issueNumber} --repo ${this.repoSlug} --add-label "${label}"`);
+            }
+            catch (err) {
+                // Label might not exist, try to create it first
+                if (err instanceof Error && err.message.includes('not found')) {
+                    await (0, exec_1.execCommand)(`gh label create "${label}" --repo ${this.repoSlug} --force`);
+                    await (0, exec_1.execCommand)(`gh issue edit ${issueNumber} --repo ${this.repoSlug} --add-label "${label}"`);
+                }
+                else {
+                    throw err;
+                }
+            }
         }, { retryOn: isRetryable });
         log.info({ issueNumber, label }, 'Label added');
     }

@@ -2,7 +2,7 @@ export interface RedFlagRule {
     id: string;
     name: string;
     description: string;
-    pattern: string;
+    keywords: string[];
     severity: 'high' | 'medium' | 'low';
 }
 export interface PRReviewRules {
@@ -11,7 +11,7 @@ export interface PRReviewRules {
 export interface SpamIndicator {
     id: string;
     name: string;
-    pattern: string;
+    keywords: string[];
     weight: number;
 }
 export interface SpamDetectionRules {

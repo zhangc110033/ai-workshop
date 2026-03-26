@@ -3,8 +3,9 @@ import { describe, it, expect } from 'vitest';
 describe('IssueReplyAgent - SPAM Detection', () => {
   const spamRules = {
     indicators: [
-      { id: 'SPAM-01', name: 'Ad links', pattern: 'buy now|click here', weight: 3 },
-      { id: 'SPAM-02', name: 'Crypto', pattern: 'bitcoin|airdrop', weight: 2 },
+      { id: 'SPAM-01', name: 'Ad links', keywords: ['bit.ly', 'buy now', 'click here'], weight: 3 },
+      { id: 'SPAM-02', name: 'Crypto', keywords: ['bitcoin', 'airdrop', 'crypto'], weight: 2 },
+      { id: 'SPAM-03', name: 'Known spam', keywords: ['make money', 'free gift', 'congratulations you won'], weight: 3 },
     ],
     threshold: 3,
   };
@@ -14,13 +15,9 @@ describe('IssueReplyAgent - SPAM Detection', () => {
     const content = `${title} ${body}`.toLowerCase();
 
     for (const indicator of spamRules.indicators) {
-      try {
-        const regex = new RegExp(indicator.pattern, 'i');
-        if (regex.test(content)) {
-          score += indicator.weight;
-        }
-      } catch {
-        // skip invalid pattern
+      const matched = indicator.keywords.some((keyword) => content.includes(keyword));
+      if (matched) {
+        score += indicator.weight;
       }
     }
 
@@ -34,6 +31,14 @@ describe('IssueReplyAgent - SPAM Detection', () => {
 
   it('should detect spam with advertising keywords', () => {
     const score = evaluateSpam('Great offer', 'Buy now and click here for deals');
+    expect(score).toBeGreaterThanOrEqual(spamRules.threshold);
+  });
+
+  it('should detect crypto spam', () => {
+    const score = evaluateSpam(
+      'FREE CRYPTO AIRDROP - Click here to claim tokens',
+      'Congratulations you won! Click here to claim your free bitcoin airdrop tokens now! https://bit.ly/1 https://bit.ly/2 https://bit.ly/3 https://bit.ly/4 Buy now and earn money. Make money online. Free gift!'
+    );
     expect(score).toBeGreaterThanOrEqual(spamRules.threshold);
   });
 

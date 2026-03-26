@@ -8,6 +8,7 @@ import type { SpamDetectionRules } from '../rules/parser';
 const log = createChildLogger({ agent: 'issue-reply' });
 const COMMENT_PREFIX = 'from AI Workshop: ';
 const MAX_ISSUES_PER_RUN = 3;
+const TAGGED_LABEL = 'tagged';
 
 export class IssueReplyAgent {
   constructor(
@@ -20,16 +21,10 @@ export class IssueReplyAgent {
     log.info('Starting issue reply scan');
     const issues = await this.github.listOpenIssues();
 
-    // Filter out already-processed issues
-    const unprocessed: Issue[] = [];
-    for (const issue of issues) {
-      const comments = await this.github.getIssueComments(issue.number);
-      const alreadyReplied = comments.some((c) => c.body.startsWith(COMMENT_PREFIX));
-      if (!alreadyReplied) {
-        unprocessed.push(issue);
-      }
-      if (unprocessed.length >= MAX_ISSUES_PER_RUN) break;
-    }
+    // Filter out already-processed issues (have "tagged" label)
+    const unprocessed = issues
+      .filter((issue) => !issue.labels.some((l) => l.name === TAGGED_LABEL))
+      .slice(0, MAX_ISSUES_PER_RUN);
 
     if (unprocessed.length === 0) {
       log.info('No unprocessed issues found');
@@ -89,6 +84,7 @@ export class IssueReplyAgent {
     const reply = this.generateReply(issue, repoContext);
     const comment = `${COMMENT_PREFIX}${reply}`;
     await this.github.commentOnIssue(issue.number, comment);
+    await this.github.addLabel(issue.number, TAGGED_LABEL);
 
     await this.audit.log({
       operationTime: new Date(),
@@ -105,13 +101,9 @@ export class IssueReplyAgent {
     const content = `${issue.title} ${issue.body}`.toLowerCase();
 
     for (const indicator of rules.indicators) {
-      try {
-        const regex = new RegExp(indicator.pattern, 'i');
-        if (regex.test(content)) {
-          score += indicator.weight;
-        }
-      } catch {
-        log.warn({ indicatorId: indicator.id }, 'Invalid spam pattern');
+      const matched = indicator.keywords.some((keyword) => content.includes(keyword));
+      if (matched) {
+        score += indicator.weight;
       }
     }
 

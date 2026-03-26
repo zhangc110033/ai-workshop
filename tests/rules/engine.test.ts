@@ -7,13 +7,14 @@ import {
 
 describe('Rule Parser', () => {
   describe('parsePRReviewRules', () => {
-    it('should parse red flag rules from markdown table', () => {
-      const content = `# PR Review Rules\n\n## Red Flags\n\n| Name | Description | Pattern | Severity |\n|------|-------------|---------|----------|\n| Test rule | A test | test_pattern | high |`;
+    it('should parse red flag rules with keywords from markdown table', () => {
+      const content = `# PR Review Rules\n\n## Red Flags\n\n| Name | Description | Keywords | Severity |\n|------|-------------|----------|----------|\n| Test rule | A test | foo, bar | high |`;
 
       const rules = parsePRReviewRules(content);
       expect(rules.redFlags).toHaveLength(1);
       expect(rules.redFlags[0].name).toBe('Test rule');
-      expect(rules.redFlags[0].pattern).toBe('test_pattern');
+      expect(rules.redFlags[0].keywords).toContain('foo');
+      expect(rules.redFlags[0].keywords).toContain('bar');
       expect(rules.redFlags[0].severity).toBe('high');
     });
 
@@ -24,17 +25,19 @@ describe('Rule Parser', () => {
   });
 
   describe('parseSpamDetectionRules', () => {
-    it('should parse spam indicators and threshold', () => {
-      const content = `# SPAM Rules\n\nThreshold: 5\n\n## Indicators\n\n| Name | Pattern | Weight |\n|------|---------|--------|\n| Ad links | https://spam | 3 |`;
+    it('should parse spam indicators with keywords and threshold', () => {
+      const content = `# SPAM Rules\n\nThreshold: 5\n\n## Indicators\n\n| Name | Keywords | Weight |\n|------|----------|--------|\n| Ad links | bit.ly, click here | 3 |`;
 
       const rules = parseSpamDetectionRules(content);
       expect(rules.threshold).toBe(5);
       expect(rules.indicators).toHaveLength(1);
+      expect(rules.indicators[0].keywords).toContain('bit.ly');
+      expect(rules.indicators[0].keywords).toContain('click here');
       expect(rules.indicators[0].weight).toBe(3);
     });
 
     it('should default threshold to 3', () => {
-      const content = `## Indicators\n\n| Name | Pattern | Weight |\n|------|---------|--------|\n| Test | test | 1 |`;
+      const content = `## Indicators\n\n| Name | Keywords | Weight |\n|------|----------|--------|\n| Test | test | 1 |`;
 
       const rules = parseSpamDetectionRules(content);
       expect(rules.threshold).toBe(3);

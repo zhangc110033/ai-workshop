@@ -97,23 +97,19 @@ export class PRReviewAgent {
     rules: RedFlagRule[]
   ): RedFlagRule[] {
     const flags: RedFlagRule[] = [];
-    const content = `${prTitle}\n${diff}`;
+    const content = `${prTitle}\n${diff}`.toLowerCase();
 
     for (const rule of rules) {
-      if (rule.pattern === 'LARGE_DIFF_1000') {
+      if (rule.keywords.includes('large_diff_1000')) {
         if (diff.split('\n').length > 1000) {
           flags.push(rule);
         }
         continue;
       }
 
-      try {
-        const regex = new RegExp(rule.pattern, 'i');
-        if (regex.test(content)) {
-          flags.push(rule);
-        }
-      } catch {
-        log.warn({ ruleId: rule.id, pattern: rule.pattern }, 'Invalid regex pattern in rule');
+      const matched = rule.keywords.some((keyword) => content.includes(keyword));
+      if (matched) {
+        flags.push(rule);
       }
     }
 

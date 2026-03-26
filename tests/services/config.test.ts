@@ -57,6 +57,7 @@ describe('ConfigService', () => {
     process.env.REPOSITORY_URL = 'git@github.com:owner/repo.git';
     process.env.OPERATOR_EMAIL = 'test@example.com';
     process.env.DATABASE_URL = 'mysql://localhost/test';
+    delete process.env.CRON_SCHEDULE;
 
     const config = new ConfigService();
     const result = config.validate();

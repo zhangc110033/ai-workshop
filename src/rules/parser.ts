@@ -5,7 +5,7 @@ export interface RedFlagRule {
   id: string;
   name: string;
   description: string;
-  pattern: string;
+  keywords: string[];
   severity: 'high' | 'medium' | 'low';
 }
 
@@ -16,7 +16,7 @@ export interface PRReviewRules {
 export interface SpamIndicator {
   id: string;
   name: string;
-  pattern: string;
+  keywords: string[];
   weight: number;
 }
 
@@ -58,7 +58,7 @@ export function parsePRReviewRules(content: string): PRReviewRules {
     id: `RF-${String(i + 1).padStart(2, '0')}`,
     name: row[0] || '',
     description: row[1] || '',
-    pattern: row[2] || '',
+    keywords: (row[2] || '').split(',').map((k) => k.trim().toLowerCase()).filter(Boolean),
     severity: (row[3] as RedFlagRule['severity']) || 'medium',
   }));
 
@@ -72,7 +72,7 @@ export function parseSpamDetectionRules(content: string): SpamDetectionRules {
   const indicators: SpamIndicator[] = rows.map((row, i) => ({
     id: `SPAM-${String(i + 1).padStart(2, '0')}`,
     name: row[0] || '',
-    pattern: row[1] || '',
+    keywords: (row[1] || '').split(',').map((k) => k.trim().toLowerCase()).filter(Boolean),
     weight: parseInt(row[2] || '1', 10),
   }));
 
